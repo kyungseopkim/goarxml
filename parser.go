@@ -144,8 +144,12 @@ func getNetwork(root *xmlquery.Node) []Network {
 			pname := getName(node)
 			ref, err := getHeadText(xmlquery.Find(node, "/I-PDU-REF"))
 			if err == nil && len(pname) >0 {
-				id := pduRef[pname]
-				pdus = append(pdus, newPduRef(pname, ref, id))
+				id, ok := pduRef[pname]
+				if ok {
+					pdus = append(pdus, newPduRef(pname, ref, id))
+				} else {
+					pdus = append(pdus, newPduRef(pname, ref, -1))
+				}
 			}
 		}
 		networks = append(networks, newNetwork(name, vid, pdus))
