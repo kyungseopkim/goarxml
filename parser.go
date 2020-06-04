@@ -311,7 +311,10 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 				}
 			}
 		}
-		id, _ := idMap[name]
+		id, idok := idMap[name]
+		if !idok {
+			id = -1
+		}
 		vlan, _ := vlanMap[name]
 		messages = append(messages, NewMessage(name, id, vlan, length, signals))
 	}
