@@ -173,7 +173,7 @@ func getISignal(root *xmlquery.Node) []ISignal {
 		if err == nil && strings.Contains(typeRef, "SINT") {
 			signed = true
 		}
-		isignals = append(isignals, NewISignal(name, length, desc, ref, value, signed))
+		isignals = append(isignals, NewISignal(name, length, desc, getLastNameFromRef(ref), value, signed))
 	}
 	return isignals
 }
@@ -196,6 +196,7 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 				for _, scale := range xmlquery.Find(n, "//COMPU-SCALE") {
 					label, err := getHeadText(xmlquery.Find(scale, "/SHORT-LABEL"))
 					if err == nil {
+						//fmt.Println(scale.OutputXML(true))
 						min := getFloatText(getHeadText(xmlquery.Find(scale,  "/LOWER-LIMIT")))
 						max := getFloatText((getHeadText(xmlquery.Find(scale,  "/UPPER-LIMIT"))))
 						nums := make([]float32, 0)

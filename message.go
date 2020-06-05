@@ -8,7 +8,7 @@ const  (
 type Signal struct {
     Name        string      `json:"name"`
     Endian      int32        `json:"endian"`
-    StartBit    int32       `json:"start_bit"`
+    StartBit    int32       `json:"startBit"`
     Length      int32       `json:"length"`
     Slope       float32     `json:"slope"`
     Intercept   float32     `json:"intercept"`
