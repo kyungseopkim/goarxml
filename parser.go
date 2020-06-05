@@ -301,16 +301,16 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 				isignal, ok := signalMap[sname]
 				if ok {
 					if len(isignal.Ref) == 0 {
-						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,0, 0,0 ))
+						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,0, 0,0,"" ))
 					} else {
 						compu, compuOk := compuMap[isignal.Ref]
 						if compuOk && len(compu.Scale) > 0 {
 							scale := compu.Scale[0]
 							intercept := float32(scale.Numerators.V1 / scale.Denominator)
 							slope := float32(scale.Numerators.V2 / scale.Denominator)
-							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope, intercept, scale.Max, scale.Min))
+							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope, intercept, scale.Max, scale.Min, compu.Unit))
 						} else {
-							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1, 0,0,0))
+							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1, 0,0,0, ""))
 						}
 					}
 				}
