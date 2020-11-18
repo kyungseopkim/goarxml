@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"math"
 )
 
 var (
@@ -102,7 +103,22 @@ func getFloatText(str string, err error) float32 {
 	var ret float32 = 0.0
 	if err == nil {
 		val, _ := strconv.ParseFloat(str, 32)
-		ret = float32(val)
+		sign := 0
+		if math.Signbit(val) {
+			sign = -1
+		} else {
+			sign = 1
+		}
+		if math.IsInf(val, sign) {
+			if sign > 0 {
+				ret = math.MaxFloat32
+			} else {
+				ret = 0 - math.MaxFloat32
+			}
+		} else {
+			ret = float32(val)
+		}
+
 	}
 	return ret
 }
