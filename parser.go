@@ -99,10 +99,10 @@ func getIntValue(str string) (int32, error) {
 	return int32(val), nil
 }
 
-func getFloatText(str string, err error) float32 {
-	var ret float32 = 0.0
+func getFloatText(str string, err error) float64 {
+	var ret float64 = 0.0
 	if err == nil {
-		val, _ := strconv.ParseFloat(str, 32)
+		val, _ := strconv.ParseFloat(str, 64)
 		sign := 0
 		if math.Signbit(val) {
 			sign = -1
@@ -111,22 +111,22 @@ func getFloatText(str string, err error) float32 {
 		}
 		if math.IsInf(val, sign) {
 			if sign > 0 {
-				ret = math.MaxFloat32
+				ret = math.MaxFloat64
 			} else {
-				ret = 0 - math.MaxFloat32
+				ret = 0 - math.MaxFloat64
 			}
 		} else {
-			ret = float32(val)
+			ret = val
 		}
 
 	}
 	return ret
 }
 
-func getFloatValue(str string) (float32, error) {
-	val, err := strconv.ParseFloat(str, 32)
+func getFloatValue(str string) (float64, error) {
+	val, err := strconv.ParseFloat(str, 64)
 	if err != nil { return 0.0, err }
-	return float32(val), nil
+	return val, nil
 }
 
 
@@ -215,7 +215,7 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 						//fmt.Println(scale.OutputXML(true))
 						min := getFloatText(getHeadText(xmlquery.Find(scale,  "/LOWER-LIMIT")))
 						max := getFloatText((getHeadText(xmlquery.Find(scale,  "/UPPER-LIMIT"))))
-						nums := make([]float32, 0)
+						nums := make([]float64, 0)
 						for _, vn := range xmlquery.Find(scale, "//COMPU-NUMERATOR/V") {
 							num := getFloatText(getText(vn))
 							nums = append(nums, num)
@@ -322,8 +322,8 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 						compu, compuOk := compuMap[isignal.Ref]
 						if compuOk && len(compu.Scale) > 0 {
 							scale := compu.Scale[0]
-							intercept := float32(scale.Numerators.V1 / scale.Denominator)
-							slope := float32(scale.Numerators.V2 / scale.Denominator)
+							intercept := float64(scale.Numerators.V1 / scale.Denominator)
+							slope := float64(scale.Numerators.V2 / scale.Denominator)
 							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope, intercept, scale.Max, scale.Min, compu.Unit))
 						} else {
 							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1, 0,0,0, ""))

@@ -1,16 +1,16 @@
 package goarxml
 
 type ComputeNum struct {
-    V1    float32   `json:"v1"`
-    V2    float32   `json:"v2"`
+    V1    float64   `json:"v1"`
+    V2    float64   `json:"v2"`
 }
 
 type CompuScale struct {
     Label       string          `json:"label"`
-    Min         float32         `json:"min"`
-    Max         float32         `json:"max"`
+    Min         float64         `json:"min"`
+    Max         float64         `json:"max"`
     Numerators  ComputeNum      `json:"numerators"`
-    Denominator float32         `json:"denominator"`
+    Denominator float64         `json:"denominator"`
     Constant    string          `json:"const"`
 }
 
@@ -25,11 +25,11 @@ func NewComputeMethod(name string, category string, unit string, scale []CompuSc
     return ComputeMethod{name, category, unit, scale }
 }
 
-func NewCompuScale(label string, min float32, max float32, numerators ComputeNum, denominator float32, constant string) CompuScale {
+func NewCompuScale(label string, min float64, max float64, numerators ComputeNum, denominator float64, constant string) CompuScale {
     return CompuScale{label, min, max, numerators, denominator, constant}
 }
 
-func NewCompuNum(v1 float32, v2 float32) ComputeNum {
+func NewCompuNum(v1 float64, v2 float64) ComputeNum {
    return ComputeNum{v1, v2}
 }
 

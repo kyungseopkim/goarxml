@@ -7,7 +7,7 @@ import (
 )
 
 func loadTestDoc() *xmlquery.Node {
-    fileName := "/Users/jerrykim/workspaces/data/arxml/ARXML_BE_40.1.arxml"
+    fileName := "/Users/jerrykim/local/resources/arxml/BE-42.GPS.arxml"
     doc, err := parseXml(fileName)
     if err != nil {
         panic(err)
@@ -27,4 +27,20 @@ func TestMessage_String(t *testing.T) {
     compu := getDataTypes(doc)
 
     fmt.Println(getMessage(doc, vlan, isignal, compu))
+}
+
+func TestGetNetwork(t *testing.T) {
+    doc := loadTestDoc()
+    vlan := getNetwork(doc)
+    fmt.Println(vlan)
+}
+
+func TestGetDataType(t *testing.T) {
+    doc := loadTestDoc()
+    compus := getDataTypes(doc)
+    compumap := getCompuMap(compus)
+    value, ok := compumap["Headlight_signals"]
+    if ok {
+        fmt.Println(value)
+    }
 }
