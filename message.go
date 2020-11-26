@@ -1,6 +1,9 @@
 package goarxml
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 const (
 	BIG_ENDIAN = iota
@@ -24,6 +27,7 @@ type Message struct {
 	Id      int32    `json:"id"`
 	Vlan    string   `json:"vlan"`
 	Length  int32    `json:"length"`
+	Crc     bool	 `json:"crc"`
 	Signals []Signal `json:"signals"`
 }
 
@@ -35,8 +39,8 @@ func (s Signal) String() string {
 	return ToJson(s)
 }
 
-func NewMessage(name string, id int32, vlan string, length int32, signals []Signal) Message {
-	return Message{name, id, vlan, length, signals}
+func NewMessage(name string, id int32, vlan string, length int32, crc bool, signals []Signal) Message {
+	return Message{name, id, vlan, length, crc,signals}
 }
 
 func (m Message) String() string {
@@ -50,6 +54,15 @@ func (s ByStartbit) Len() int { return len(s) }
 func (s ByStartbit) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 func (s ByStartbit) Less(i, j int) bool { return s[i].StartBit < s[j].StartBit }
+
+func (s ByStartbit) IsCrc() bool {
+	if len(s) > 0 && ( strings.HasSuffix(s[0].Name, "CRC") ||
+		strings.HasSuffix(s[0].Name, "CRC1") ||
+		strings.HasSuffix(strings.ToUpper(s[0].Name), "CHECKSUM")) {
+		return true
+	}
+	return false
+}
 
 func (m Message) SortByStartbit() {
 	sort.Sort(ByStartbit(m.Signals))

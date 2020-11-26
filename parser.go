@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/antchfx/xmlquery"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"math"
@@ -337,7 +338,12 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 			id = -1
 		}
 		vlan, _ := vlanMap[name]
-		messages = append(messages, NewMessage(name, id, vlan, length, signals))
+		crc := false
+
+		byStartbit := ByStartbit(signals)
+		sort.Sort(byStartbit)
+		crc = byStartbit.IsCrc()
+		messages = append(messages, NewMessage(name, id, vlan, length, crc, signals))
 	}
 	return messages
 }
