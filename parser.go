@@ -4,15 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"github.com/antchfx/xmlquery"
+	"math"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"math"
 )
 
 var (
-	NoDataError = errors.New("No data")
+	NoDataError = errors.New("NoData")
 )
 
 func parseFile(file *os.File) (*xmlquery.Node, error) {
@@ -33,10 +33,11 @@ func parseXml(filePath string) (*xmlquery.Node, error) {
 
 func getName(node *xmlquery.Node) string {
 	lst := xmlquery.Find(node, "/SHORT-NAME")
-	if lst != nil && len(lst) == 0 {
+	if lst == nil || len(lst) == 0 {
 		return ""
+	} else {
+		return lst[0].FirstChild.Data
 	}
-	return lst[0].FirstChild.Data
 }
 
 func listPackages(root *xmlquery.Node) [] *xmlquery.Node {
@@ -101,7 +102,7 @@ func getIntValue(str string) (int32, error) {
 }
 
 func getFloatText(str string, err error) float64 {
-	var ret float64 = 0.0
+	var ret = 0.0
 	if err == nil {
 		val, _ := strconv.ParseFloat(str, 64)
 		sign := 0
@@ -124,11 +125,11 @@ func getFloatText(str string, err error) float64 {
 	return ret
 }
 
-func getFloatValue(str string) (float64, error) {
-	val, err := strconv.ParseFloat(str, 64)
-	if err != nil { return 0.0, err }
-	return val, nil
-}
+//func getFloatValue(str string) (float64, error) {
+//	val, err := strconv.ParseFloat(str, 64)
+//	if err != nil { return 0.0, err }
+//	return val, nil
+//}
 
 
 func getNetwork(root *xmlquery.Node) []Network {
@@ -186,11 +187,22 @@ func getISignal(root *xmlquery.Node) []ISignal {
 		value  := getFloatText(getHeadText(xmlquery.Find(sig,  "//VALUE")))
 		ref, _ := getHeadText(xmlquery.Find(sig, "//COMPU-METHOD-REF"))
 		typeRef, err := getHeadText(xmlquery.Find(sig,  "//BASE-TYPE-REF"))
-		var signed bool = false
-		if err == nil && strings.Contains(typeRef, "SINT") {
-			signed = true
+		var signed = false
+		valueType := "number"
+		if err == nil {
+			typeParts := strings.Split(typeRef, "/")
+			dataType := typeParts[len(typeParts)-1]
+			if strings.Contains(dataType, "SINT") {
+				signed = true
+			}
+			if len(dataType) > 0 {
+				internals := strings.Split(dataType, "_")
+				if len(internals)> 1 && internals[1] == "ASCII" {
+						valueType = "string"
+				}
+			}
 		}
-		isignals = append(isignals, NewISignal(name, length, desc, getLastNameFromRef(ref), value, signed))
+		isignals = append(isignals, NewISignal(name, length, desc, getLastNameFromRef(ref), value, signed, valueType))
 	}
 	return isignals
 }
@@ -203,7 +215,7 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 		category, caterr := getHeadText(xmlquery.Find(compu, "/CATEGORY"))
 		ref, referr := getHeadText(xmlquery.Find(compu, "/UNIT-REF"))
 		if caterr == nil && category != "IDENTICAL" {
-			var unit string = ""
+			var unit  = ""
 			if referr == nil {
 				unit = ref[len("/DataTypes/Units/"):]
 			}
@@ -215,7 +227,7 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 					if err == nil {
 						//fmt.Println(scale.OutputXML(true))
 						min := getFloatText(getHeadText(xmlquery.Find(scale,  "/LOWER-LIMIT")))
-						max := getFloatText((getHeadText(xmlquery.Find(scale,  "/UPPER-LIMIT"))))
+						max := getFloatText(getHeadText(xmlquery.Find(scale,  "/UPPER-LIMIT")))
 						nums := make([]float64, 0)
 						for _, vn := range xmlquery.Find(scale, "//COMPU-NUMERATOR/V") {
 							num := getFloatText(getText(vn))
@@ -318,16 +330,19 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 				isignal, ok := signalMap[sname]
 				if ok {
 					if len(isignal.Ref) == 0 {
-						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,0, 0,0,"" ))
+						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,
+							0, 0,0,"", isignal.IsSigned, isignal.DataType ))
 					} else {
 						compu, compuOk := compuMap[isignal.Ref]
 						if compuOk && len(compu.Scale) > 0 {
 							scale := compu.Scale[0]
-							intercept := float64(scale.Numerators.V1 / scale.Denominator)
-							slope := float64(scale.Numerators.V2 / scale.Denominator)
-							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope, intercept, scale.Max, scale.Min, compu.Unit))
+							intercept := scale.Numerators.V1 / scale.Denominator
+							slope := scale.Numerators.V2 / scale.Denominator
+							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope,
+								intercept, scale.Max, scale.Min, compu.Unit, isignal.IsSigned, isignal.DataType))
 						} else {
-							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1, 0,0,0, ""))
+							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1,
+								0,0,0, "", isignal.IsSigned, isignal.DataType))
 						}
 					}
 				}

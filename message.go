@@ -20,6 +20,8 @@ type Signal struct {
 	Max       float64 `json:"max"`
 	Min       float64 `json:"min"`
 	Unit      string  `json:"unit"`
+	IsSigned  bool	  `json:"signed"`
+	DataType  string  `json:"dataType"`
 }
 
 type Message struct {
@@ -31,8 +33,10 @@ type Message struct {
 	Signals []Signal `json:"signals"`
 }
 
-func NewSignal(name string, endian int32, startbit int32, length int32, slope float64, intercept float64, max float64, min float64, unit string) Signal {
-	return Signal{name, endian, startbit, length, slope, intercept, max, min, unit}
+func NewSignal(name string, endian int32, startbit int32, length int32, slope float64,
+	intercept float64, max float64, min float64, unit string, signed bool, dataType string) Signal {
+	return Signal{name, endian, startbit, length, slope,
+		intercept, max, min, unit, signed, dataType}
 }
 
 func (s Signal) String() string {

@@ -7,7 +7,7 @@ import (
 )
 
 func loadTestDoc() *xmlquery.Node {
-    fileName := "/Users/jerrykim/local/resources/arxml/BE-42.GPS.arxml"
+    fileName := "/Users/jerrykim/workspace/arxml/type/S21.6_WholeSys_Trial_20210303.arxml"
     doc, err := parseXml(fileName)
     if err != nil {
         panic(err)
