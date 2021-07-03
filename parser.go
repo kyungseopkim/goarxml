@@ -331,7 +331,7 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 				if ok {
 					if len(isignal.Ref) == 0 {
 						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,
-							0, 0,0,"", isignal.IsSigned, isignal.DataType ))
+							0, 0,0,"", isignal.IsSigned, isignal.DataType, isignal.Desc ))
 					} else {
 						compu, compuOk := compuMap[isignal.Ref]
 						if compuOk && len(compu.Scale) > 0 {
@@ -339,10 +339,10 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 							intercept := scale.Numerators.V1 / scale.Denominator
 							slope := scale.Numerators.V2 / scale.Denominator
 							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, slope,
-								intercept, scale.Max, scale.Min, compu.Unit, isignal.IsSigned, isignal.DataType))
+								intercept, scale.Max, scale.Min, compu.Unit, isignal.IsSigned, isignal.DataType, isignal.Desc))
 						} else {
 							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1,
-								0,0,0, "", isignal.IsSigned, isignal.DataType))
+								0,0,0, "", isignal.IsSigned, isignal.DataType, isignal.Desc))
 						}
 					}
 				}
