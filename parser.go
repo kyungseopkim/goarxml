@@ -182,7 +182,7 @@ func getISignal(root *xmlquery.Node) []ISignal {
 	sigs := getObjectsInside(signals, "I-SIGNAL")
 	for _, sig := range sigs {
 		name := getName(sig)
-		desc, _ := getHeadText(xmlquery.Find(sig, "/DESC"))
+		desc, _ := getHeadText(xmlquery.Find(sig, "/DESC/L-2"))
 		length := getIntText(getHeadText(xmlquery.Find(sig,"/LENGTH")))
 		value  := getFloatText(getHeadText(xmlquery.Find(sig,  "//VALUE")))
 		ref, _ := getHeadText(xmlquery.Find(sig, "//COMPU-METHOD-REF"))
