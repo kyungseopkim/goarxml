@@ -40,13 +40,17 @@ func getName(node *xmlquery.Node) string {
 	}
 }
 
-func listPackages(root *xmlquery.Node) [] *xmlquery.Node {
-	if root == nil { return nil }
+func listPackages(root *xmlquery.Node) []*xmlquery.Node {
+	if root == nil {
+		return nil
+	}
 	return xmlquery.Find(root, "//AR-PACKAGES/AR-PACKAGE")
 }
 
 func getPackage(root *xmlquery.Node, name string) *xmlquery.Node {
-	if root == nil { return nil }
+	if root == nil {
+		return nil
+	}
 	for _, p := range listPackages(root) {
 		if getName(p) == name {
 			return p
@@ -64,23 +68,43 @@ func getItem(nodes []*xmlquery.Node, name string) *xmlquery.Node {
 	return nil
 }
 
+func getFirstObject(node *xmlquery.Node, name string) *xmlquery.Node {
+	if node == nil {
+		return nil
+	}
+	objs := getObjects(node, name)
+
+	if len(objs) > 0 {
+		return objs[0]
+	}
+	return nil
+}
+
 func getObjects(node *xmlquery.Node, name string) []*xmlquery.Node {
-	if node == nil { return nil }
+	if node == nil {
+		return nil
+	}
 	return xmlquery.Find(node, fmt.Sprintf("/%s", name))
 }
 
 func getObjectsInside(node *xmlquery.Node, name string) []*xmlquery.Node {
-	if node == nil { return nil }
+	if node == nil {
+		return nil
+	}
 	return xmlquery.Find(node, fmt.Sprintf("//%s", name))
 }
 
 func getText(node *xmlquery.Node) (string, error) {
-	if node == nil { return "", NoDataError }
+	if node == nil {
+		return "", NoDataError
+	}
 	return strings.TrimSpace(node.FirstChild.Data), nil
 }
 
 func getHeadText(nodes []*xmlquery.Node) (string, error) {
-	if nodes == nil || len(nodes) ==0 { return "", NoDataError }
+	if nodes == nil || len(nodes) == 0 {
+		return "", NoDataError
+	}
 	return strings.TrimSpace(nodes[0].FirstChild.Data), nil
 }
 
@@ -131,14 +155,15 @@ func getFloatText(str string, err error) float64 {
 //	return val, nil
 //}
 
-
 func getNetwork(root *xmlquery.Node) []Network {
-	if root == nil { return nil }
-	clusters := getPackage(getPackage(root,"Topology"), "Clusters")
-	ethernets := getObjects(getObjects(clusters, "ELEMENTS")[0],"ETHERNET-CLUSTER")
+	if root == nil {
+		return nil
+	}
+	clusters := getPackage(getPackage(root, "Topology"), "Clusters")
+	ethernets := getObjects(getObjects(clusters, "ELEMENTS")[0], "ETHERNET-CLUSTER")
 	ethernet := getItem(ethernets, "Ethernet_Cluster")
 	channels := getObjectsInside(ethernet, "ETHERNET-PHYSICAL-CHANNEL")
-	networks := make([]Network,0)
+	networks := make([]Network, 0)
 	for _, ch := range channels {
 		name := getName(ch)
 		vid := getIntText(getHeadText(xmlquery.Find(ch, "/VLAN/VLAN-IDENTIFIER")))
@@ -161,7 +186,7 @@ func getNetwork(root *xmlquery.Node) []Network {
 		for _, node := range triggers {
 			pname := getName(node)
 			ref, err := getHeadText(xmlquery.Find(node, "/I-PDU-REF"))
-			if err == nil && len(pname) >0 {
+			if err == nil && len(pname) > 0 {
 				id, ok := pduRef[pname]
 				if ok {
 					pdus = append(pdus, newPduRef(pname, ref, id))
@@ -177,16 +202,18 @@ func getNetwork(root *xmlquery.Node) []Network {
 
 func getISignal(root *xmlquery.Node) []ISignal {
 	isignals := make([]ISignal, 0)
-	if root == nil { return nil }
+	if root == nil {
+		return nil
+	}
 	signals := getPackage(getPackage(root, "Communication"), "Signals")
 	sigs := getObjectsInside(signals, "I-SIGNAL")
 	for _, sig := range sigs {
 		name := getName(sig)
 		desc, _ := getHeadText(xmlquery.Find(sig, "/DESC/L-2"))
-		length := getIntText(getHeadText(xmlquery.Find(sig,"/LENGTH")))
-		value  := getFloatText(getHeadText(xmlquery.Find(sig,  "//VALUE")))
+		length := getIntText(getHeadText(xmlquery.Find(sig, "/LENGTH")))
+		value := getFloatText(getHeadText(xmlquery.Find(sig, "//VALUE")))
 		ref, _ := getHeadText(xmlquery.Find(sig, "//COMPU-METHOD-REF"))
-		typeRef, err := getHeadText(xmlquery.Find(sig,  "//BASE-TYPE-REF"))
+		typeRef, err := getHeadText(xmlquery.Find(sig, "//BASE-TYPE-REF"))
 		var signed = false
 		valueType := "number"
 		if err == nil {
@@ -197,8 +224,8 @@ func getISignal(root *xmlquery.Node) []ISignal {
 			}
 			if len(dataType) > 0 {
 				internals := strings.Split(dataType, "_")
-				if len(internals)> 1 && internals[1] == "ASCII" {
-						valueType = "string"
+				if len(internals) > 1 && internals[1] == "ASCII" {
+					valueType = "string"
 				}
 			}
 		}
@@ -209,13 +236,13 @@ func getISignal(root *xmlquery.Node) []ISignal {
 
 func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 	computeMethods := make([]ComputeMethod, 0)
-	compus := xmlquery.Find(getPackage(getPackage(root, "DataTypes"), "CompuMethods"),  "//COMPU-METHOD")
+	compus := xmlquery.Find(getPackage(getPackage(root, "DataTypes"), "CompuMethods"), "//COMPU-METHOD")
 	for _, compu := range compus {
 		name := getName(compu)
 		category, caterr := getHeadText(xmlquery.Find(compu, "/CATEGORY"))
 		ref, referr := getHeadText(xmlquery.Find(compu, "/UNIT-REF"))
 		if caterr == nil && category != "IDENTICAL" {
-			var unit  = ""
+			var unit = ""
 			if referr == nil {
 				unit = ref[len("/DataTypes/Units/"):]
 			}
@@ -226,20 +253,20 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 					label, err := getHeadText(xmlquery.Find(scale, "/SHORT-LABEL"))
 					if err == nil {
 						//fmt.Println(scale.OutputXML(true))
-						min := getFloatText(getHeadText(xmlquery.Find(scale,  "/LOWER-LIMIT")))
-						max := getFloatText(getHeadText(xmlquery.Find(scale,  "/UPPER-LIMIT")))
+						min := getFloatText(getHeadText(xmlquery.Find(scale, "/LOWER-LIMIT")))
+						max := getFloatText(getHeadText(xmlquery.Find(scale, "/UPPER-LIMIT")))
 						nums := make([]float64, 0)
 						for _, vn := range xmlquery.Find(scale, "//COMPU-NUMERATOR/V") {
 							num := getFloatText(getText(vn))
 							nums = append(nums, num)
 						}
-						denominator := getFloatText(getHeadText(xmlquery.Find(scale,  "//COMPU-DENOMINATOR/V")))
-						constant, _ := getHeadText(xmlquery.Find(scale,  "//VT"))
+						denominator := getFloatText(getHeadText(xmlquery.Find(scale, "//COMPU-DENOMINATOR/V")))
+						constant, _ := getHeadText(xmlquery.Find(scale, "//VT"))
 						compuScale = append(compuScale, NewCompuScale(label, min, max, NewCompuNum(nums[0], nums[1]), denominator, constant))
 					}
 				}
 			}
-			computeMethods = append(computeMethods, NewComputeMethod(name,category,unit, compuScale))
+			computeMethods = append(computeMethods, NewComputeMethod(name, category, unit, compuScale))
 		}
 	}
 	return computeMethods
@@ -247,7 +274,9 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 
 func getLastNameFromRef(ref string) string {
 	parts := strings.Split(ref, "/")
-	if len(parts) == 0 { return ref }
+	if len(parts) == 0 {
+		return ref
+	}
 	return parts[len(parts)-1]
 }
 
@@ -264,7 +293,7 @@ func vlan2idmap(vlans []Network) map[string]int32 {
 	return idmap
 }
 
-func getVlanMap(vlans []Network)map[string]string {
+func getVlanMap(vlans []Network) map[string]string {
 	lookup := make(map[string]string)
 	for _, vlan := range vlans {
 		for _, pdu := range vlan.PduRef {
@@ -280,7 +309,7 @@ func getVlanMap(vlans []Network)map[string]string {
 	return lookup
 }
 
-func getSignalMap(sigs []ISignal ) map[string]ISignal {
+func getSignalMap(sigs []ISignal) map[string]ISignal {
 	lookup := make(map[string]ISignal)
 	for _, signal := range sigs {
 		lookup[signal.Name] = signal
@@ -296,7 +325,7 @@ func getCompuMap(compus []ComputeMethod) map[string]ComputeMethod {
 	return lookup
 }
 
-func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu []ComputeMethod  ) []Message {
+func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu []ComputeMethod) []Message {
 	messages := make([]Message, 0)
 	idMap := vlan2idmap(vlan)
 	vlanMap := getVlanMap(vlan)
@@ -330,8 +359,8 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 				isignal, ok := signalMap[sname]
 				if ok {
 					if len(isignal.Ref) == 0 {
-						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length,1,
-							0, 0,0,"", isignal.IsSigned, isignal.DataType, isignal.Desc ))
+						signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1,
+							0, 0, 0, "", isignal.IsSigned, isignal.DataType, isignal.Desc))
 					} else {
 						compu, compuOk := compuMap[isignal.Ref]
 						if compuOk && len(compu.Scale) > 0 {
@@ -342,7 +371,7 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 								intercept, scale.Max, scale.Min, compu.Unit, isignal.IsSigned, isignal.DataType, isignal.Desc))
 						} else {
 							signals = append(signals, NewSignal(sname, int32(endian), startBit, isignal.Length, 1,
-								0,0,0, "", isignal.IsSigned, isignal.DataType, isignal.Desc))
+								0, 0, 0, "", isignal.IsSigned, isignal.DataType, isignal.Desc))
 						}
 					}
 				}
@@ -358,9 +387,33 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 		byStartbit := ByStartbit(signals)
 		sort.Sort(byStartbit)
 		crc = byStartbit.IsCrc()
-		messages = append(messages, NewMessage(name, id, vlan, length, crc, signals))
+		messages = append(messages, NewMessage(name, id, vlan, length, crc, NORMAL_MSG, signals))
 	}
 	return messages
+}
+
+func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) {
+	idMap := vlan2idmap(vlan)
+	msgLookup := Message2Lookup(msg)
+	pdus := getPackage(getPackage(root, "Communication"), "PDUs")
+	secs := xmlquery.Find(pdus, "//SECURED-I-PDU")
+	for _, sec := range secs {
+		name := getName(sec)
+		payload := getFirstObject(sec, "PAYLOAD-REF")
+		ref, refErr := getText(payload)
+		if refErr != nil {
+			continue
+		}
+		targetPdu := GetLastName(ref)
+		var msgId int32
+		var ok bool
+		if msgId, ok = idMap[targetPdu]; !ok {
+			msgId = -1
+		}
+		if targetMsg, ok := msgLookup[targetPdu]; ok {
+			msg = append(msg, NewMessage(name, msgId, targetMsg.Vlan, targetMsg.Length, targetMsg.Crc, SEC_MSG, targetMsg.Signals))
+		}
+	}
 }
 
 func Parse(filePath string) []Message {
@@ -371,5 +424,7 @@ func Parse(filePath string) []Message {
 	vlan := getNetwork(doc)
 	isignal := getISignal(doc)
 	compu := getDataTypes(doc)
-	return getMessage(doc,vlan, isignal, compu)
+	msg := getMessage(doc, vlan, isignal, compu)
+	getSecMessage(doc, msg, vlan)
+	return msg
 }

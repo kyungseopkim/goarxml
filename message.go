@@ -10,6 +10,11 @@ const (
 	LITTLE_ENDIAN
 )
 
+const (
+	NORMAL_MSG = "normal"
+	SEC_MSG    = "sec"
+)
+
 type Signal struct {
 	Name      string  `json:"name"`
 	Endian    int32   `json:"endian"`
@@ -20,9 +25,9 @@ type Signal struct {
 	Max       float64 `json:"max"`
 	Min       float64 `json:"min"`
 	Unit      string  `json:"unit"`
-	IsSigned  bool	  `json:"signed"`
+	IsSigned  bool    `json:"signed"`
 	DataType  string  `json:"dataType"`
-	Desc 	  string  `json:"description"`
+	Desc      string  `json:"description"`
 }
 
 type Message struct {
@@ -30,7 +35,8 @@ type Message struct {
 	Id      int32    `json:"id"`
 	Vlan    string   `json:"vlan"`
 	Length  int32    `json:"length"`
-	Crc     bool	 `json:"crc"`
+	Crc     bool     `json:"crc"`
+	Type    string   `json:"type"`
 	Signals []Signal `json:"signals"`
 }
 
@@ -44,8 +50,8 @@ func (s Signal) String() string {
 	return ToJson(s)
 }
 
-func NewMessage(name string, id int32, vlan string, length int32, crc bool, signals []Signal) Message {
-	return Message{name, id, vlan, length, crc,signals}
+func NewMessage(name string, id int32, vlan string, length int32, crc bool, msgType string, signals []Signal) Message {
+	return Message{name, id, vlan, length, crc, msgType, signals}
 }
 
 func (m Message) String() string {
@@ -61,7 +67,7 @@ func (s ByStartbit) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s ByStartbit) Less(i, j int) bool { return s[i].StartBit < s[j].StartBit }
 
 func (s ByStartbit) IsCrc() bool {
-	if len(s) > 0 && ( strings.HasSuffix(s[0].Name, "CRC") ||
+	if len(s) > 0 && (strings.HasSuffix(s[0].Name, "CRC") ||
 		strings.HasSuffix(s[0].Name, "CRC1") ||
 		strings.HasSuffix(strings.ToUpper(s[0].Name), "CHECKSUM")) {
 		return true
@@ -77,4 +83,12 @@ func SortByStartbit(msgs []Message) {
 	for _, msg := range msgs {
 		msg.SortByStartbit()
 	}
+}
+
+func Message2Lookup(msgs []Message) map[string]Message {
+	ret := make(map[string]Message)
+	for _, msg := range msgs {
+		ret[msg.Name] = msg
+	}
+	return ret
 }
