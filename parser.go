@@ -392,7 +392,7 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 	return messages
 }
 
-func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) {
+func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) []Message {
 	idMap := vlan2idmap(vlan)
 	msgLookup := Message2Lookup(msg)
 	pdus := getPackage(getPackage(root, "Communication"), "PDUs")
@@ -407,13 +407,14 @@ func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) {
 		targetPdu := GetLastName(ref)
 		var msgId int32
 		var ok bool
-		if msgId, ok = idMap[targetPdu]; !ok {
+		if msgId, ok = idMap[name]; !ok {
 			msgId = -1
 		}
 		if targetMsg, ok := msgLookup[targetPdu]; ok {
 			msg = append(msg, NewMessage(name, msgId, targetMsg.Vlan, targetMsg.Length, targetMsg.Crc, SEC_MSG, targetMsg.Signals))
 		}
 	}
+	return msg
 }
 
 func Parse(filePath string) []Message {
@@ -425,6 +426,6 @@ func Parse(filePath string) []Message {
 	isignal := getISignal(doc)
 	compu := getDataTypes(doc)
 	msg := getMessage(doc, vlan, isignal, compu)
-	getSecMessage(doc, msg, vlan)
+	msg = getSecMessage(doc, msg, vlan)
 	return msg
 }
