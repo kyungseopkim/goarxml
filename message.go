@@ -11,8 +11,9 @@ const (
 )
 
 const (
-	NORMAL_MSG = "normal"
-	SEC_MSG    = "sec"
+	NORMAL_MSG       = "normal"
+	SEC_MSG          = "sec"
+	MULTIPLEXING_MSG = "multiplex"
 )
 
 type Signal struct {
@@ -40,14 +41,38 @@ type Message struct {
 	Signals []Signal `json:"signals"`
 }
 
+type MultiplexMessage struct {
+	Name           string            `json:"name"`
+	Id             int32             `json:"id"`
+	Length         int32             `json:"length"`
+	Type           string            `json:"type"`
+	SelectorStart  int32             `json:"selectorStart"`
+	SelectorLength int32             `json:"selectorLength"`
+	SelectorEndian int32             `json:"selectorEndian"`
+	Alternative    map[int32]Message `json:"alternative"`
+}
+
 func NewSignal(name string, endian int32, startbit int32, length int32, slope float64,
-	intercept float64, max float64, min float64, unit string, signed bool, dataType string, desc string) Signal {
+	intercept float64, max float64, min float64, unit string, signed bool, dataType string,
+	desc string) Signal {
 	return Signal{name, endian, startbit, length, slope,
 		intercept, max, min, unit, signed, dataType, desc}
 }
 
 func (s Signal) String() string {
 	return ToJson(s)
+}
+
+func NewMultiplexMessage(name string, id int32, length int32, msgType string,
+	selectorStart int32, selectorLength int32, selectorEndian int32,
+	alternative map[int32]Message) MultiplexMessage {
+	return MultiplexMessage{name, id, length, msgType,
+		selectorStart, selectorLength, selectorEndian,
+		alternative}
+}
+
+func (m MultiplexMessage) String() string {
+	return ToJson(m)
 }
 
 func NewMessage(name string, id int32, vlan string, length int32, crc bool, msgType string, signals []Signal) Message {
@@ -91,4 +116,11 @@ func Message2Lookup(msgs []Message) map[string]Message {
 		ret[msg.Name] = msg
 	}
 	return ret
+}
+
+func DetectEndian(text string) int {
+	if text == "MOST-SIGNIFICANT-BYTE-LAST" {
+		return LITTLE_ENDIAN
+	}
+	return BIG_ENDIAN
 }

@@ -293,6 +293,15 @@ func vlan2idmap(vlans []Network) map[string]int32 {
 	return idmap
 }
 
+func getIdWithName(idMap map[string]int32, name string) int32 {
+	var msgId int32
+	var ok bool
+	if msgId, ok = idMap[name]; !ok {
+		msgId = -1
+	}
+	return msgId
+}
+
 func getVlanMap(vlans []Network) map[string]string {
 	lookup := make(map[string]string)
 	for _, vlan := range vlans {
@@ -405,11 +414,7 @@ func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) []Message
 			continue
 		}
 		targetPdu := GetLastName(ref)
-		var msgId int32
-		var ok bool
-		if msgId, ok = idMap[name]; !ok {
-			msgId = -1
-		}
+		msgId := getIdWithName(idMap, name)
 		if targetMsg, ok := msgLookup[targetPdu]; ok {
 			msg = append(msg, NewMessage(name, msgId, targetMsg.Vlan, targetMsg.Length, targetMsg.Crc, SEC_MSG, targetMsg.Signals))
 		}
@@ -417,7 +422,51 @@ func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) []Message
 	return msg
 }
 
-func Parse(filePath string) []Message {
+func getMultiplexing(root *xmlquery.Node, msg []Message, vlan []Network) []interface{} {
+	ret := make([]interface{}, len(msg))
+	for i, m := range msg {
+		ret[i] = m
+	}
+	idMap := vlan2idmap(vlan)
+	msgLookup := Message2Lookup(msg)
+	pdus := getPackage(getPackage(root, "Communication"), "PDUs")
+	multiplex := xmlquery.Find(pdus, "//MULTIPLEXED-I-PDU")
+	for _, mul := range multiplex {
+		name := getName(mul)
+		msgId := getIdWithName(idMap, name)
+		length := getIntText(getText(getFirstObject(mul, "LENGTH")))
+		selectorStart := getIntText(getText(getFirstObject(mul, "SELECTOR-FIELD-START-POSITION")))
+		selectorLength := getIntText(getText(getFirstObject(mul, "SELECTOR-FIELD-LENGTH")))
+		selectorEndian, err := getText(getFirstObject(mul, "SELECTOR-FIELD-BYTE-ORDER"))
+		if err != nil {
+			continue
+		}
+		dynamics := xmlquery.Find(mul, "//DYNAMIC-PART-ALTERNATIVE")
+		alternative := make(map[int32]Message)
+		for _, item := range dynamics {
+			pduRef, er := getText(getFirstObject(item, "I-PDU-REF"))
+			if er != nil {
+				continue
+			}
+			msgName := getLastNameFromRef(pduRef)
+			fieldCode := getIntText(getText(getFirstObject(item, "SELECTOR-FIELD-CODE")))
+			alternative[fieldCode] = msgLookup[msgName]
+		}
+		ret = append(ret, MultiplexMessage{
+			name,
+			msgId,
+			length,
+			MULTIPLEXING_MSG,
+			selectorStart,
+			selectorLength,
+			int32(DetectEndian(selectorEndian)),
+			alternative,
+		})
+	}
+	return ret
+}
+
+func Parse(filePath string) []interface{} {
 	doc, err := parseXml(filePath)
 	if err != nil {
 		panic(err)
@@ -427,5 +476,5 @@ func Parse(filePath string) []Message {
 	compu := getDataTypes(doc)
 	msg := getMessage(doc, vlan, isignal, compu)
 	msg = getSecMessage(doc, msg, vlan)
-	return msg
+	return getMultiplexing(doc, msg, vlan)
 }
