@@ -32,13 +32,15 @@ type Signal struct {
 }
 
 type Message struct {
-	Name    string   `json:"name"`
-	Id      int32    `json:"id"`
-	Vlan    string   `json:"vlan"`
-	Length  int32    `json:"length"`
-	Crc     bool     `json:"crc"`
-	Type    string   `json:"type"`
-	Signals []Signal `json:"signals"`
+	Name       string   `json:"name"`
+	Id         int32    `json:"id"`
+	Vlan       string   `json:"vlan"`
+	Length     int32    `json:"length"`
+	Crc        bool     `json:"crc"`
+	Type       string   `json:"type"`
+	Triggering bool     `json:"triggering"`
+	Interval   uint32   `json:"interval"`
+	Signals    []Signal `json:"signals"`
 }
 
 type MultiplexMessage struct {
@@ -75,8 +77,11 @@ func (m MultiplexMessage) String() string {
 	return ToJson(m)
 }
 
-func NewMessage(name string, id int32, vlan string, length int32, crc bool, msgType string, signals []Signal) Message {
-	return Message{name, id, vlan, length, crc, msgType, signals}
+func NewMessage(name string, id int32, vlan string, length int32,
+	crc bool, msgType string, triggering bool, interval uint32,
+	signals []Signal) Message {
+	return Message{name, id, vlan, length, crc, msgType,
+		triggering, interval, signals}
 }
 
 func (m Message) String() string {

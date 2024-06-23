@@ -114,6 +114,17 @@ func getText(node *xmlquery.Node) (string, error) {
 	return strings.TrimSpace(node.FirstChild.Data), nil
 }
 
+func getHeadNode(node *xmlquery.Node, query string) *xmlquery.Node {
+	if node == nil {
+		return nil
+	}
+	result := xmlquery.Find(node, query)
+	if len(result) > 0 {
+		return result[0]
+	}
+	return nil
+}
+
 func getHeadText(nodes []*xmlquery.Node) (string, error) {
 	if nodes == nil || len(nodes) == 0 {
 		return "", NoDataError
@@ -174,12 +185,6 @@ func getFloatText(str string, err error) float64 {
 	}
 	return ret
 }
-
-//func getFloatValue(str string) (float64, error) {
-//	val, err := strconv.ParseFloat(str, 64)
-//	if err != nil { return 0.0, err }
-//	return val, nil
-//}
 
 func getNetwork(root *xmlquery.Node) []Network {
 	if root == nil {
@@ -279,8 +284,8 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 					label, err := getHeadText(xmlquery.Find(scale, "/SHORT-LABEL"))
 					if err == nil {
 						//fmt.Println(scale.OutputXML(true))
-						min := getFloatText(getHeadText(xmlquery.Find(scale, "/LOWER-LIMIT")))
-						max := getFloatText(getHeadText(xmlquery.Find(scale, "/UPPER-LIMIT")))
+						minValue := getFloatText(getHeadText(xmlquery.Find(scale, "/LOWER-LIMIT")))
+						maxValue := getFloatText(getHeadText(xmlquery.Find(scale, "/UPPER-LIMIT")))
 						nums := make([]float64, 0)
 						for _, vn := range xmlquery.Find(scale, "//COMPU-NUMERATOR/V") {
 							num := getFloatText(getText(vn))
@@ -288,7 +293,7 @@ func getDataTypes(root *xmlquery.Node) []ComputeMethod {
 						}
 						denominator := getFloatText(getHeadText(xmlquery.Find(scale, "//COMPU-DENOMINATOR/V")))
 						constant, _ := getHeadText(xmlquery.Find(scale, "//VT"))
-						compuScale = append(compuScale, NewCompuScale(label, min, max, NewCompuNum(nums[0], nums[1]), denominator, constant))
+						compuScale = append(compuScale, NewCompuScale(label, minValue, maxValue, NewCompuNum(nums[0], nums[1]), denominator, constant))
 					}
 				}
 			}
@@ -373,6 +378,16 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 		name := getName(sigPdu)
 		length := getLength(sigPdu)
 		signals := make([]Signal, 0)
+		time := getHeadNode(sigPdu, "/I-PDU-TIMING-SPECIFICATIONS/I-PDU-TIMING/TRANSMISSION-MODE-DECLARATION/TRANSMISSION-MODE-TRUE-TIMING")
+		var triggering bool
+		triggeringNode := getHeadNode(time, "/EVENT-CONTROLLED-TIMING")
+		if triggeringNode != nil {
+			triggering = true
+		} else {
+			triggering = false
+		}
+		intervalText := getFloatText(getText(getHeadNode(time, "/CYCLIC-TIMING/TIME-PERIOD/VALUE")))
+		interval := uint32(intervalText * 1000)
 		mappings := xmlquery.Find(sigPdu, "//I-SIGNAL-TO-I-PDU-MAPPING")
 		for _, mapping := range mappings {
 			ref, referr := getHeadText(xmlquery.Find(mapping, "/I-SIGNAL-REF"))
@@ -422,7 +437,7 @@ func getMessage(root *xmlquery.Node, vlan []Network, isignals []ISignal, compu [
 		byStartbit := ByStartbit(signals)
 		sort.Sort(byStartbit)
 		crc = byStartbit.IsCrc()
-		messages = append(messages, NewMessage(name, id, vlan, length, crc, NORMAL_MSG, signals))
+		messages = append(messages, NewMessage(name, id, vlan, length, crc, NORMAL_MSG, triggering, interval, signals))
 	}
 	return messages
 }
@@ -443,7 +458,8 @@ func getSecMessage(root *xmlquery.Node, msg []Message, vlan []Network) []Message
 		targetPdu := GetLastName(ref)
 		msgId := getIdWithName(idMap, name)
 		if targetMsg, ok := msgLookup[targetPdu]; ok {
-			msg = append(msg, NewMessage(name, msgId, targetMsg.Vlan, length, targetMsg.Crc, SEC_MSG, targetMsg.Signals))
+			msg = append(msg, NewMessage(name, msgId, targetMsg.Vlan, length, targetMsg.Crc, SEC_MSG,
+				targetMsg.Triggering, targetMsg.Interval, targetMsg.Signals))
 		}
 	}
 	return msg
